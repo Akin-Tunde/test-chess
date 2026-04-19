@@ -1,0 +1,386 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  /* Cyberpunk Neon Colors */
+  --neon-pink: #ff006e;
+  --neon-cyan: #00f5ff;
+  --neon-purple: #b537f2;
+  --neon-green: #39ff14;
+  
+  /* Dark Background */
+  --bg-dark: #0a0e27;
+  --bg-darker: #050812;
+  --bg-card: #1a1f3a;
+  
+  /* Text Colors */
+  --text-primary: #00f5ff;
+  --text-secondary: #ff006e;
+  --text-accent: #b537f2;
+  
+  /* Borders & Lines */
+  --border-neon: #00f5ff;
+  --border-pink: #ff006e;
+  --border-subtle: #2a2f4a;
+  
+  /* Semantic Colors */
+  --color-success: #39ff14;
+  --color-error: #ff006e;
+  --color-warning: #ffb700;
+  --color-info: #00f5ff;
+  
+  --primary: var(--neon-cyan);
+  --primary-foreground: var(--bg-dark);
+  --sidebar-primary: var(--neon-cyan);
+  --sidebar-primary-foreground: var(--bg-dark);
+  --chart-1: var(--neon-cyan);
+  --chart-2: var(--neon-pink);
+  --chart-3: var(--neon-purple);
+  --chart-4: var(--neon-green);
+  --chart-5: var(--neon-cyan);
+  --radius: 0.65rem;
+  --background: var(--bg-dark);
+  --foreground: var(--text-primary);
+  --card: var(--bg-card);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-card);
+  --popover-foreground: var(--text-primary);
+  --secondary: var(--neon-pink);
+  --secondary-foreground: var(--bg-dark);
+  --muted: var(--border-subtle);
+  --muted-foreground: var(--text-accent);
+  --accent: var(--neon-cyan);
+  --accent-foreground: var(--bg-dark);
+  --destructive: var(--neon-pink);
+  --destructive-foreground: var(--bg-dark);
+  --border: var(--border-subtle);
+  --input: var(--bg-card);
+  --ring: var(--neon-cyan);
+  --sidebar: var(--bg-card);
+  --sidebar-foreground: var(--text-primary);
+  --sidebar-accent: var(--neon-cyan);
+  --sidebar-accent-foreground: var(--bg-dark);
+  --sidebar-border: var(--border-subtle);
+  --sidebar-ring: var(--neon-cyan);
+}
+
+.dark {
+  /* Cyberpunk theme is inherently dark */
+  --primary: var(--neon-cyan);
+  --primary-foreground: var(--bg-dark);
+  --sidebar-primary: var(--neon-cyan);
+  --sidebar-primary-foreground: var(--bg-dark);
+  --background: var(--bg-dark);
+  --foreground: var(--text-primary);
+  --card: var(--bg-card);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-card);
+  --popover-foreground: var(--text-primary);
+  --secondary: var(--neon-pink);
+  --secondary-foreground: var(--bg-dark);
+  --muted: var(--border-subtle);
+  --muted-foreground: var(--text-accent);
+  --accent: var(--neon-cyan);
+  --accent-foreground: var(--bg-dark);
+  --destructive: var(--neon-pink);
+  --destructive-foreground: var(--bg-dark);
+  --border: var(--border-subtle);
+  --input: var(--bg-card);
+  --ring: var(--neon-cyan);
+  --chart-1: var(--neon-cyan);
+  --chart-2: var(--neon-pink);
+  --chart-3: var(--neon-purple);
+  --chart-4: var(--neon-green);
+  --chart-5: var(--neon-cyan);
+  --sidebar: var(--bg-card);
+  --sidebar-foreground: var(--text-primary);
+  --sidebar-accent: var(--neon-cyan);
+  --sidebar-accent-foreground: var(--bg-dark);
+  --sidebar-border: var(--border-subtle);
+  --sidebar-ring: var(--neon-cyan);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [type="button"]:not(:disabled),
+  [type="submit"]:not(:disabled),
+  [type="reset"]:not(:disabled),
+  a[href],
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled) {
+    @apply cursor-pointer;
+  }
+}
+
+@layer components {
+  /**
+   * Custom container utility that centers content and adds responsive padding.
+   *
+   * This overrides Tailwind's default container behavior to:
+   * - Auto-center content (mx-auto)
+   * - Add responsive horizontal padding
+   * - Set max-width for large screens
+   *
+   * Usage: <div className="container">...</div>
+   *
+   * For custom widths, use max-w-* utilities directly:
+   * <div className="max-w-6xl mx-auto px-4">...</div>
+   */
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem; /* 16px - mobile padding */
+    padding-right: 1rem;
+  }
+
+  .flex {
+    min-height: 0;
+    min-width: 0;
+  }
+
+  @media (min-width: 640px) {
+    .container {
+      padding-left: 1.5rem; /* 24px - tablet padding */
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      padding-left: 2rem; /* 32px - desktop padding */
+      padding-right: 2rem;
+      max-width: 1280px; /* Standard content width */
+    }
+  }
+}
+
+/* Cyberpunk Typography */
+@layer base {
+  body {
+    font-family: 'Space Mono', monospace;
+    font-weight: 400;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 10px var(--neon-cyan), 0 0 20px rgba(0, 245, 255, 0.5);
+  }
+
+  h1 {
+    @apply text-4xl;
+    color: var(--neon-cyan);
+  }
+
+  h2 {
+    @apply text-3xl;
+    color: var(--neon-pink);
+  }
+
+  h3 {
+    @apply text-2xl;
+    color: var(--text-primary);
+  }
+}
+
+/* HUD-Style Corner Brackets */
+.hud-frame {
+  position: relative;
+  border: 2px solid var(--neon-cyan);
+  box-shadow: 
+    inset 0 0 10px rgba(0, 245, 255, 0.2),
+    0 0 20px rgba(0, 245, 255, 0.3);
+}
+
+.hud-frame::before,
+.hud-frame::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--neon-cyan);
+}
+
+.hud-frame::before {
+  top: -8px;
+  left: -8px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.hud-frame::after {
+  bottom: -8px;
+  right: -8px;
+  border-left: none;
+  border-top: none;
+}
+
+/* Neon Glow Text Effect */
+.neon-text {
+  color: var(--neon-cyan);
+  text-shadow: 
+    0 0 10px var(--neon-cyan),
+    0 0 20px rgba(0, 245, 255, 0.5),
+    0 0 30px rgba(0, 245, 255, 0.3);
+  font-weight: 700;
+}
+
+.neon-text-pink {
+  color: var(--neon-pink);
+  text-shadow: 
+    0 0 10px var(--neon-pink),
+    0 0 20px rgba(255, 0, 110, 0.5),
+    0 0 30px rgba(255, 0, 110, 0.3);
+}
+
+.neon-text-purple {
+  color: var(--neon-purple);
+  text-shadow: 
+    0 0 10px var(--neon-purple),
+    0 0 20px rgba(181, 55, 242, 0.5),
+    0 0 30px rgba(181, 55, 242, 0.3);
+}
+
+/* Technical Line Dividers */
+.tech-divider {
+  position: relative;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--neon-cyan) 20%,
+    var(--neon-cyan) 80%,
+    transparent
+  );
+  box-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+}
+
+.tech-divider-pink {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--neon-pink) 20%,
+    var(--neon-pink) 80%,
+    transparent
+  );
+  box-shadow: 0 0 10px rgba(255, 0, 110, 0.5);
+}
+
+/* Pulse Glow Animation */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(0, 245, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0, 245, 255, 0.6);
+  }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Scan Lines Effect */
+@keyframes scan {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+.scan-lines {
+  position: relative;
+  overflow: hidden;
+}
+
+.scan-lines::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 245, 255, 0.03),
+    rgba(0, 245, 255, 0.03) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  animation: scan 8s linear infinite;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-darker);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--neon-cyan);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-pink);
+}
