@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 import { drizzle } from 'drizzle-orm/mysql2';
 import { puzzles } from '../drizzle/schema';
 import { nanoid } from 'nanoid';

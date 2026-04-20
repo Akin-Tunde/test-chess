@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, Text, Float, MeshDistortMaterial } from '@react-three/drei';
+import { OrbitControls, PerspectiveCamera, Text, Float, MeshDistortMaterial , Billboard } from '@react-three/drei';
 import * as THREE from 'three';
 import { Chess, Move } from 'chess.js';
 
@@ -65,35 +65,38 @@ const Piece3D = ({
 
   useFrame((state) => {
     if (meshRef.current) {
-      // Smoothly interpolate position
       meshRef.current.position.x = THREE.MathUtils.lerp(meshRef.current.position.x, currentPos[0], 0.1);
       meshRef.current.position.z = THREE.MathUtils.lerp(meshRef.current.position.z, currentPos[2], 0.1);
       
       if (isSelected) {
-        meshRef.current.position.y = THREE.MathUtils.lerp(meshRef.current.position.y, position[1] + 0.5 + Math.sin(state.clock.elapsedTime * 5) * 0.1, 0.1);
+        meshRef.current.position.y = THREE.MathUtils.lerp(meshRef.current.position.y, position[1] + 0.8 + Math.sin(state.clock.elapsedTime * 5) * 0.1, 0.1);
       } else {
-        meshRef.current.position.y = THREE.MathUtils.lerp(meshRef.current.position.y, position[1] + 0.2, 0.1);
+        meshRef.current.position.y = THREE.MathUtils.lerp(meshRef.current.position.y, position[1] + 0.4, 0.1);
       }
     }
   });
 
   return (
-    <group ref={meshRef} position={[position[0], position[1] + 0.2, position[2]]}>
-      <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
-        <Text
-          fontSize={0.8}
-          color={color === 'w' ? '#00f5ff' : '#ffffff'}
-          anchorX="center"
-          anchorY="middle"
-          rotation={[-Math.PI / 2, 0, 0]}
-        >
-          {pieceChar}
-          <meshStandardMaterial 
-            emissive={color === 'w' ? '#00f5ff' : '#ffffff'} 
-            emissiveIntensity={isSelected ? 2 : 0.5} 
-          />
-        </Text>
-      </Float>
+    <group ref={meshRef}>
+      {/* The Billboard component makes the piece always face the camera */}
+      <Billboard position={[0, 0, 0]} follow={true}>
+        <Float speed={3} rotationIntensity={0.2} floatIntensity={0.5}>
+          <Text
+            fontSize={0.9}
+            color={color === 'w' ? '#00f5ff' : '#ffffff'}
+            anchorX="center"
+            anchorY="middle"
+            // REMOVED the rotation that made it lie flat
+          >
+            {pieceChar}
+            <meshStandardMaterial 
+              emissive={color === 'w' ? '#00f5ff' : '#ffffff'} 
+              emissiveIntensity={isSelected ? 3 : 1} 
+              toneMapped={false}
+            />
+          </Text>
+        </Float>
+      </Billboard>
     </group>
   );
 };

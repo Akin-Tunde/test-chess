@@ -6,7 +6,7 @@ CREATE TABLE `aiGames` (
 	`status` enum('active','completed','abandoned') NOT NULL DEFAULT 'active',
 	`result` enum('player_win','ai_win','draw','abandoned'),
 	`pgn` text,
-	`moves` json DEFAULT ('[]'),
+	`moves` json,
 	`startedAt` timestamp NOT NULL DEFAULT (now()),
 	`completedAt` timestamp,
 	`createdAt` timestamp NOT NULL DEFAULT (now()),
@@ -40,7 +40,7 @@ CREATE TABLE `games` (
 	`status` enum('pending','active','completed','abandoned') NOT NULL DEFAULT 'pending',
 	`result` enum('white_win','black_win','draw','abandoned'),
 	`pgn` text,
-	`moves` json DEFAULT ('[]'),
+	`moves` json,
 	`startedAt` timestamp,
 	`completedAt` timestamp,
 	`createdAt` timestamp NOT NULL DEFAULT (now()),
@@ -82,10 +82,27 @@ CREATE TABLE `puzzles` (
 	CONSTRAINT `puzzles_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
-ALTER TABLE `users` ADD `rating` int DEFAULT 1200 NOT NULL;--> statement-breakpoint
-ALTER TABLE `users` ADD `wins` int DEFAULT 0 NOT NULL;--> statement-breakpoint
-ALTER TABLE `users` ADD `losses` int DEFAULT 0 NOT NULL;--> statement-breakpoint
-ALTER TABLE `users` ADD `draws` int DEFAULT 0 NOT NULL;--> statement-breakpoint
+CREATE TABLE `users` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`openId` varchar(64) NOT NULL,
+	`name` text,
+	`email` varchar(320),
+	`password` text,
+	`salt` varchar(64),
+	`loginMethod` varchar(64),
+	`role` enum('user','admin') NOT NULL DEFAULT 'user',
+	`rating` int NOT NULL DEFAULT 1200,
+	`wins` int NOT NULL DEFAULT 0,
+	`losses` int NOT NULL DEFAULT 0,
+	`draws` int NOT NULL DEFAULT 0,
+	`metadata` json,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	`lastSignedIn` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `users_id` PRIMARY KEY(`id`),
+	CONSTRAINT `users_openId_unique` UNIQUE(`openId`)
+);
+--> statement-breakpoint
 CREATE INDEX `playerIdx` ON `aiGames` (`playerId`);--> statement-breakpoint
 CREATE INDEX `gameIdx` ON `chatMessages` (`gameId`);--> statement-breakpoint
 CREATE INDEX `toPlayerIdx` ON `gameInvitations` (`toPlayerId`);--> statement-breakpoint
