@@ -51,6 +51,10 @@ export default function Game() {
   const [gameResult, setGameResult] = useState<string>("");
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
+  const recordMoveMutation = trpc.chess.recordMove.useMutation();
+  const updateGameStatusMutation = trpc.chess.updateGameStatus.useMutation();
+  const sendMessageMutation = trpc.chess.sendMessage.useMutation();
+
   // Fetch game data
   const { data: game, isLoading } = trpc.chess.getGame.useQuery(
     { gameId },
@@ -81,7 +85,7 @@ export default function Game() {
         whitePlayerId: game.whitePlayerId,
         blackPlayerId: game.blackPlayerId,
         status: game.status,
-        result: game.result,
+        result: game.result ?? undefined,
         moves,
         currentTurn,
         whiteTime: 10 * 60 * 1000, // 10 minutes
@@ -173,12 +177,19 @@ export default function Game() {
       setChatMessages((prev) => [...prev, data]);
     });
 
-    // Listen for game end
-    socket.on("game:ended", (data: { result: string }) => {
-      setGameEnded(true);
-      setGameResult(data.result);
-      toast.info(`Game ended: ${data.result}`);
-    });
+ // Find the socket listener in Game.tsx and update it:
+socket.on("game:ended", (data: any) => {
+  setGameEnded(true);
+  
+  // Safeguard: if data.result is an object, get the string inside it
+  const finalResult = typeof data.result === 'object' 
+    ? data.result.result 
+    : data.result;
+
+  setGameResult(finalResult || "Game Over");
+  toast.info(`Game ended: ${finalResult}`);
+});
+
 
     // Listen for spectator joined
     socket.on("game:spectator-joined", (data: { spectatorId: number; timestamp: number }) => {
@@ -245,57 +256,56 @@ export default function Game() {
 
     // Save move to database
     try {
-      await trpc.chess.recordMove.mutate({ gameId, move });
-    } catch (error) {
-      console.error("Failed to save move:", error);
-    }
+    // USE THIS INSTEAD of trpc.chess.recordMove.mutate
+    await recordMoveMutation.mutateAsync({ gameId, move });
+  } catch (error) {
+    console.error("Failed to save move:", error);
+  }
   };
 
   const handleSendChat = async () => {
-    if (!chatInput.trim() || !gameState) return;
+  if (!chatInput.trim() || !gameState) return;
 
-    if (isSpectator) {
-      toast.error("Spectators cannot send messages");
-      return;
-    }
+  if (isSpectator) {
+    toast.error("Spectators cannot send messages");
+    return;
+  }
 
-    try {
-      await trpc.chess.sendMessage.mutate({
-        gameId,
-        message: chatInput,
-      });
+  try {
+    // FIX: Use the hook instance instead of the raw tRPC path
+    await sendMessageMutation.mutateAsync({
+      gameId,
+      message: chatInput,
+    });
 
-      // Emit chat via socket
-      socket?.emit("game:chat", gameId, chatInput);
+    // Emit chat via socket
+    socket?.emit("game:chat", gameId, chatInput);
 
-      setChatInput("");
-    } catch (error) {
-      console.error("Failed to send message:", error);
-      toast.error("Failed to send message");
-    }
-  };
+    setChatInput("");
+  } catch (error) {
+    console.error("Failed to send message:", error);
+    toast.error("Failed to send message");
+  }
+};
 
-  const handleResign = async () => {
-    if (isSpectator) {
-      toast.error("Spectators cannot resign");
-      return;
-    }
+const handleResign = async () => {
+  if (!gameState) return;
+  const resultStr = playerColor === 'white' ? 'black_win' : 'white_win';
+  
+  // Emit just the string result
+  socket?.emit("game:end", gameId, resultStr); 
 
-    if (!gameState) return;
-
-    const result = playerColor === 'white' ? 'black_win' : 'white_win';
-    socket?.emit("game:end", gameId, { result });
-
-    try {
-      await trpc.chess.updateGameStatus.mutate({
-        gameId,
-        status: 'completed',
-        result,
-      });
-    } catch (error) {
-      console.error("Failed to resign:", error);
-    }
-  };
+ try {
+    // USE THIS INSTEAD of trpc.chess.updateGameStatus.mutate
+    await updateGameStatusMutation.mutateAsync({
+      gameId,
+      status: 'completed',
+      result: resultStr,
+    });
+  } catch (error) {
+    console.error("Failed to resign:", error);
+  }
+};
 
   const handleOfferDraw = () => {
     if (isSpectator) {

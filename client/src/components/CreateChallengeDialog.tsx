@@ -13,28 +13,32 @@ export default function CreateChallengeDialog() {
   const [timeControl, setTimeControl] = useState("10+5");
   const [color, setColor] = useState("random");
   
-  const createInvitation = trpc.chess.sendInvitation.useMutation({
+  // 1. Add utils to refresh the lobby list after creating a challenge
+  const utils = trpc.useUtils();
+
+  // 2. Define the public challenge mutation
+  const createPublicMutation = trpc.chess.createPublicChallenge.useMutation({
     onSuccess: () => {
-      toast.success("Challenge created successfully!");
+      toast.success("Challenge broadcasted to the lobby!");
       setOpen(false);
+      // This tells the Lobby to fetch the list again
+      utils.chess.getOpenChallenges.invalidate();
+      utils.chess.getMyChallenges.invalidate();
     },
     onError: (error) => {
-      toast.error(`Failed to create challenge: ${error.message}`);
+      toast.error(`Failed: ${error.message}`);
     }
   });
 
+  // 3. One single function to handle the click
   const handleCreate = () => {
-    // For now, we'll just send a general invitation or a placeholder logic
-    // In a real app, this might create an 'open challenge' entry in the DB
-    // For this implementation, we'll assume the user is looking for any opponent
-    toast.info("Searching for opponent...");
-    setOpen(false);
+    createPublicMutation.mutate({ timeControl });
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="btn-neon">
+        <Button className="btn-neon w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-2" />
           Create Challenge
         </Button>
@@ -88,8 +92,12 @@ export default function CreateChallengeDialog() {
           <Button variant="outline" onClick={() => setOpen(false)} className="border-border">
             Cancel
           </Button>
-          <Button onClick={handleCreate} className="btn-neon">
-            Broadcast Challenge
+          <Button 
+            onClick={handleCreate} 
+            className="btn-neon" 
+            disabled={createPublicMutation.isPending}
+          >
+            {createPublicMutation.isPending ? "Broadcasting..." : "Broadcast Challenge"}
           </Button>
         </DialogFooter>
       </DialogContent>

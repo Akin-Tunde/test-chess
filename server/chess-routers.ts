@@ -5,6 +5,25 @@ import { TRPCError } from '@trpc/server';
 
 export const chessRouter = router({
   // Game Management
+
+getMyChallenges: protectedProcedure.query(async ({ ctx }) => {
+  return await chess.getMyChallenges(ctx.user.id);
+}),
+
+getMyActiveGames: protectedProcedure.query(async ({ ctx }) => {
+  return await chess.getActiveGames(ctx.user.id);
+}),
+
+  getOpenChallenges: publicProcedure.query(async () => {
+    return await chess.getOpenChallenges();
+  }),
+  
+  createPublicChallenge: protectedProcedure
+    .input(z.object({ timeControl: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      return await chess.createPublicChallenge(ctx.user.id, input.timeControl);
+    }),
+
   recordMove: protectedProcedure
     .input(z.object({ gameId: z.string(), move: z.any() }))
     .mutation(async ({ input }) => {
@@ -46,12 +65,17 @@ export const chessRouter = router({
     return invitations;
   }),
 
-  acceptInvitation: protectedProcedure
-    .input(z.object({ invitationId: z.string(), gameId: z.string() }))
-    .mutation(async ({ input }) => {
-      await chess.acceptInvitation(input.invitationId, input.gameId);
-      return { success: true };
-    }),
+acceptInvitation: protectedProcedure
+  .input(z.object({ invitationId: z.string(), gameId: z.string() }))
+  .mutation(async ({ ctx, input }) => {
+    // Pass ctx.user.id as the second argument (the accepter)
+    const actualGameId = await chess.acceptInvitation(input.invitationId, ctx.user.id);
+    
+    return { 
+      success: true, 
+      gameId: actualGameId 
+    }; 
+  }),
 
   rejectInvitation: protectedProcedure
     .input(z.object({ invitationId: z.string() }))

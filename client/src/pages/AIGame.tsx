@@ -209,14 +209,20 @@ export default function AIGame() {
                 moves={moves}
               />
 
-              {status === 'completed' && (
-                <div className="mt-6 p-6 bg-primary/10 border border-primary/30 rounded-lg text-center">
-                  <Trophy className="h-12 w-12 text-primary mx-auto mb-4" />
-                  <h2 className="text-2xl font-bold neon-text mb-2">GAME OVER</h2>
-                  <p className="text-lg mb-6 uppercase tracking-widest">{game?.result?.replace('_', ' ')}</p>
-                  <Button onClick={() => setLocation("/lobby")} className="btn-neon">Return to Lobby</Button>
-                </div>
-              )}
+            
+{status === 'completed' && (
+  <div className="...">
+    <Trophy className="..." />
+    <h2 className="...">GAME OVER</h2>
+    <p className="text-lg mb-6 uppercase tracking-widest">
+      {/* ADD SAFE CHECKS HERE */}
+      {typeof game?.result === 'string' 
+        ? game.result.replace('_', ' ') 
+        : 'Match Finished'}
+    </p>
+    <Button onClick={() => setLocation("/lobby")} className="btn-neon">Return to Lobby</Button>
+  </div>
+)}
             </Card>
           </div>
 

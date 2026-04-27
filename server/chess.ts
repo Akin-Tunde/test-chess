@@ -1,14 +1,18 @@
 import { nanoid } from 'nanoid';
 import { getDb } from './db';
 import { games, gameInvitations, chatMessages, puzzles, puzzleAttempts, aiGames, notifications, users } from '../drizzle/schema';
-import { eq, and, or, desc } from 'drizzle-orm';
+import { eq, and, or, desc, isNull, aliasedTable } from 'drizzle-orm';
+
 
 /**
  * Game Management
  */
 export async function createGame(whitePlayerId: number, blackPlayerId: number) {
   const db = await getDb();
-  if (!db) throw new Error('Database not available');
+  
+  if (!db) {
+    throw new Error('Database connection failed');
+  }
 
   const gameId = nanoid();
   const now = new Date();
@@ -17,13 +21,48 @@ export async function createGame(whitePlayerId: number, blackPlayerId: number) {
     id: gameId,
     whitePlayerId,
     blackPlayerId,
-    status: 'active', // Set to active immediately
+    status: 'active',
     moves: [],
     startedAt: now,
     createdAt: now,
   });
 
   return gameId;
+}
+
+export async function getOpenChallenges() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db.select({
+    id: gameInvitations.id,
+    fromPlayerId: gameInvitations.fromPlayerId,
+    fromPlayerName: users.name, // Look up the name
+    timeControl: gameInvitations.timeControl,
+    status: gameInvitations.status,
+    createdAt: gameInvitations.createdAt,
+  })
+  .from(gameInvitations)
+  .leftJoin(users, eq(gameInvitations.fromPlayerId, users.id)) // Join logic
+  .where(and(isNull(gameInvitations.toPlayerId), eq(gameInvitations.status, 'pending')))
+  .orderBy(desc(gameInvitations.createdAt));
+}
+
+// Update createInvitation to handle "null" toPlayerId
+export async function createPublicChallenge(fromPlayerId: number, timeControl: string) {
+  const db = await getDb();
+  if (!db) throw new Error('DB Error');
+
+  const id = nanoid();
+  await db.insert(gameInvitations).values({
+    id,
+    fromPlayerId,
+    toPlayerId: null, // Public
+    timeControl,
+    status: 'pending',
+    expiresAt: new Date(Date.now() + 3600000), // 1 hour
+  });
+  return id;
 }
 
 export async function getGameById(gameId: string) {
@@ -80,6 +119,42 @@ export async function createInvitation(fromPlayerId: number, toPlayerId: number)
   return invitationId;
 }
 
+// server/chess.ts - Add these functions
+
+export async function getMyChallenges(playerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  // Challenges I CREATED that are still PENDING
+  return await db.select().from(gameInvitations)
+    .where(and(eq(gameInvitations.fromPlayerId, playerId), eq(gameInvitations.status, 'pending')));
+}
+
+// 2. Update Active Games to include Opponent Names
+export async function getActiveGames(playerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  // Create aliases so we can join the users table twice (once for white, once for black)
+  const whitePlayer = aliasedTable(users, "whitePlayer");
+  const blackPlayer = aliasedTable(users, "blackPlayer");
+
+  return await db.select({
+    id: games.id,
+    whitePlayerId: games.whitePlayerId,
+    whitePlayerName: whitePlayer.name,
+    blackPlayerId: games.blackPlayerId,
+    blackPlayerName: blackPlayer.name,
+    status: games.status,
+  })
+  .from(games)
+  .leftJoin(whitePlayer, eq(games.whitePlayerId, whitePlayer.id))
+  .leftJoin(blackPlayer, eq(games.blackPlayerId, blackPlayer.id))
+  .where(and(
+    or(eq(games.whitePlayerId, playerId), eq(games.blackPlayerId, playerId)),
+    eq(games.status, 'active')
+  ));
+}
+
 export async function getInvitationsForPlayer(playerId: number) {
   const db = await getDb();
   if (!db) return [];
@@ -100,20 +175,27 @@ export async function getInvitationById(invitationId: string) {
   return result[0] || null;
 }
 
-export async function acceptInvitation(invitationId: string, gameId: string) {
+
+export async function acceptInvitation(invitationId: string, accepterId: number) {
   const db = await getDb();
-  if (!db) throw new Error('Database not available');
+  if (!db) throw new Error('Database connection failed');
 
   const invitation = await getInvitationById(invitationId);
   if (!invitation) throw new Error('Invitation not found');
 
-  // Create the actual game record
-  // By default, the challenger (fromPlayerId) is white, and the recipient is black
-  // You could randomize this or add it to invitation data
-  await createGame(invitation.fromPlayerId, invitation.toPlayerId);
+  // Use the fromPlayerId (challenger) and the accepterId (the person joining)
+  const actualGameId = await createGame(invitation.fromPlayerId, accepterId);
 
-  // Update invitation status
-  await db.update(gameInvitations).set({ status: 'accepted', gameId }).where(eq(gameInvitations.id, invitationId));
+  // Update invitation status and fill in the toPlayerId if it was a public challenge
+  await db.update(gameInvitations)
+    .set({ 
+      status: 'accepted', 
+      gameId: actualGameId,
+      toPlayerId: accepterId // Record who actually joined the public challenge
+    })
+    .where(eq(gameInvitations.id, invitationId));
+
+  return actualGameId;
 }
 
 export async function rejectInvitation(invitationId: string) {

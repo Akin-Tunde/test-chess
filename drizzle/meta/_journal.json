@@ -8,6 +8,13 @@
       "when": 1776608315501,
       "tag": "0000_sudden_titanium_man",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1776864946924,
+      "tag": "0001_white_baron_zemo",
+      "breakpoints": true
     }
   ]
 }

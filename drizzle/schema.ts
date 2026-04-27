@@ -55,8 +55,11 @@ export type InsertGame = typeof games.$inferInsert;
 export const gameInvitations = mysqlTable("gameInvitations", {
   id: varchar("id", { length: 64 }).primaryKey(),
   fromPlayerId: int("fromPlayerId").notNull(),
-  toPlayerId: int("toPlayerId").notNull(),
+  // CHANGE THIS: Remove .notNull() to allow public challenges
+  toPlayerId: int("toPlayerId"), 
   status: mysqlEnum("status", ["pending", "accepted", "rejected", "expired"]).default("pending").notNull(),
+  // Add metadata for time control
+  timeControl: varchar("timeControl", { length: 20 }).default("10+5"),
   gameId: varchar("gameId", { length: 64 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   expiresAt: timestamp("expiresAt").notNull(),

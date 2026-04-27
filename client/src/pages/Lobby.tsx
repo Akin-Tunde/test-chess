@@ -5,15 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Search, Swords, Trophy, Clock, Cpu, Eye } from "lucide-react";
+import { Users, Search, Swords, Trophy, Clock, Cpu, Eye, Zap } from "lucide-react";
 import CreateChallengeDialog from "@/components/CreateChallengeDialog";
 import PlayerSearch from "@/components/PlayerSearch";
 import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
 import { useSocket } from "@/contexts/SocketContext";
 import { toast } from "sonner";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 export default function Lobby() {
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeGames, setActiveGames] = useState<any[]>([]);
@@ -23,45 +25,48 @@ export default function Lobby() {
   // tRPC queries
   const { data: invitations, isLoading: loadingInvites, refetch: refetchInvitations } = trpc.chess.getMyInvitations.useQuery();
   const { data: leaderboard, isLoading: loadingLeaderboard } = trpc.chess.getLeaderboard.useQuery({ limit: 10 });
+  const { data: openChallenges } = trpc.chess.getOpenChallenges.useQuery();
+
+// Inside Lobby component, with other queries
+const { data: myChallenges, refetch: refetchMyChallenges } = trpc.chess.getMyChallenges.useQuery();
+const { data: myActiveGames } = trpc.chess.getMyActiveGames.useQuery();
 
   // tRPC mutations
   const acceptInvitationMutation = trpc.chess.acceptInvitation.useMutation({
-    onSuccess: (data) => {
+  onSuccess: (data) => {
+    if (data.gameId) {
       toast.success("Invitation accepted! Starting game...");
-      setLocation(`/game/${data.gameId || 'new'}`);
-    },
-    onError: (error) => {
-      toast.error("Failed to accept invitation");
-      console.error(error);
-    },
-  });
-
-  const rejectInvitationMutation = trpc.chess.rejectInvitation.useMutation({
-    onSuccess: () => {
-      toast.success("Invitation declined");
-      refetchInvitations();
-    },
-    onError: () => {
-      toast.error("Failed to decline invitation");
-    },
-  });
-
-  const handleAcceptInvitation = async (invitationId: string, fromPlayerId: number) => {
-    try {
-      // Generate a game ID (in production, this would be created by the backend)
-      const gameId = `game_${Date.now()}`;
-      
-      await acceptInvitationMutation.mutateAsync({
-        invitationId,
-        gameId,
-      });
-
-      // Emit socket event to notify opponent
-      socket?.emit("invite:accept", invitationId, gameId);
-    } catch (error) {
-      console.error("Failed to accept invitation:", error);
+      setLocation(`/game/${data.gameId}`); // Use the real ID
+    } else {
+      toast.error("Game creation failed: No ID returned");
     }
-  };
+  },
+  onError: (error) => {
+    toast.error("Failed to accept invitation");
+  },
+});
+  const rejectInvitationMutation = trpc.chess.rejectInvitation.useMutation();
+
+// client/src/pages/Lobby.tsx - Update handleAcceptInvitation
+
+const handleAcceptInvitation = async (invitationId: string, fromPlayerId: number) => {
+  try {
+    const result = await acceptInvitationMutation.mutateAsync({
+      invitationId,
+      gameId: "placeholder",
+    });
+
+    if (result.gameId) {
+      // ADD fromPlayerId as the third argument here:
+      socket?.emit("invite:accept", invitationId, result.gameId, fromPlayerId);
+      
+      // The joiner redirects immediately
+      setLocation(`/game/${result.gameId}`);
+    }
+  } catch (error) {
+    console.error("Failed to accept:", error);
+  }
+};
 
   const handleDeclineInvitation = async (invitationId: string) => {
     try {
@@ -69,8 +74,12 @@ export default function Lobby() {
         invitationId,
       });
 
+      toast.success("Invitation declined");
+      refetchInvitations();
+
       socket?.emit("invite:reject", invitationId);
     } catch (error) {
+      toast.error("Failed to decline invitation");
       console.error("Failed to decline invitation:", error);
     }
   };
@@ -95,6 +104,24 @@ export default function Lobby() {
     };
   }, [socket, isConnected]);
 
+useEffect(() => {
+  if (!socket) return;
+
+  // Listen for the "Your challenge was accepted" event
+  socket.on("invite:accepted", (data: { gameId: string }) => {
+    toast.success("An opponent has joined! Connecting to neural link...");
+    
+    // Auto-redirect the creator to the game page
+    setTimeout(() => {
+      setLocation(`/game/${data.gameId}`);
+    }, 1500);
+  });
+
+  return () => {
+    socket.off("invite:accepted");
+  };
+}, [socket, setLocation]);
+
   return (
     <DashboardLayout>
       <div className="container mx-auto px-0 md:px-4 py-4 md:py-8">
@@ -112,6 +139,12 @@ export default function Lobby() {
                 <TabsTrigger value="challenges" className="data-[state=active]:neon-text shrink-0">
                   Open Challenges
                 </TabsTrigger>
+                <TabsTrigger value="my-games" className="data-[state=active]:neon-text-purple shrink-0">
+    My Games
+    {(myActiveGames?.length || 0) + (myChallenges?.length || 0) > 0 && (
+      <Badge className="ml-2 bg-purple-500">{ (myActiveGames?.length || 0) + (myChallenges?.length || 0) }</Badge>
+    )}
+  </TabsTrigger>
                 <TabsTrigger value="invitations" className="data-[state=active]:neon-text-pink shrink-0">
                   My Invitations
                   {invitations && invitations.length > 0 && (
@@ -140,28 +173,62 @@ export default function Lobby() {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="challenges" className="space-y-4">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                  <div className="relative w-full max-w-sm">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search challenges..."
-                      className="pl-10 bg-card border-border focus:border-primary w-full"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                  <div className="w-full sm:w-auto">
-                    <CreateChallengeDialog />
-                  </div>
-                </div>
+   <TabsContent value="challenges" className="space-y-4">
+  <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 mb-6">
+    <div className="order-first sm:order-last w-full sm:w-auto">
+      <CreateChallengeDialog />
+    </div>
+    
+    <div className="relative w-full max-w-sm">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+      <Input
+        placeholder="Search challenges..."
+        className="pl-10 bg-card border-border focus:border-primary w-full"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
+    </div>
+  </div>
 
-                {/* Placeholder for challenges list */}
-                <Card className="bg-card border-border p-8 md:p-12 text-center hud-frame">
-                  <Swords className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-20" />
-                  <p className="text-muted-foreground text-sm md:text-base">No open challenges found. Create one to start playing!</p>
-                </Card>
-              </TabsContent>
+  {/* REPLACE THE OLD PLACEHOLDER CARD WITH THIS BLOCK: */}
+{openChallenges && openChallenges.length > 0 ? (
+  <div className="grid gap-4">
+    {openChallenges
+      // 2. ADD THIS FILTER LINE:
+      .filter((challenge) => challenge.fromPlayerId !== user?.id) 
+      .map((challenge) => (
+        <Card key={challenge.id} className="p-4 flex justify-between items-center hud-frame bg-card">
+          <div>
+            <p className="font-bold text-primary">Challenge from Player {challenge.fromPlayerName || `Player #${challenge.fromPlayerId}`}</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-widest">
+              Time Control: {challenge.timeControl || "10+5"}
+            </p>
+          </div>
+          <Button 
+            className="btn-neon" 
+            onClick={() => handleAcceptInvitation(challenge.id, challenge.fromPlayerId!)}
+          >
+            Join Match
+          </Button>
+        </Card>
+      ))}
+      
+    {/* 3. OPTIONAL: Show a message if only your own challenges exist */}
+    {openChallenges.every(c => c.fromPlayerId === user?.id) && (
+      <div className="text-center py-8 border border-dashed border-border rounded-lg">
+        <p className="text-muted-foreground">Your challenge is live. Waiting for an opponent...</p>
+      </div>
+    )}
+  </div>
+) : (
+  <Card className="bg-card border-border p-8 text-center hud-frame">
+    <Swords className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-20" />
+    <p>No open challenges found. Create one to start playing!</p>
+  </Card>
+)}
+
+
+</TabsContent>
 
               <TabsContent value="search" className="space-y-4">
                 <PlayerSearch />
@@ -290,6 +357,68 @@ export default function Lobby() {
                   </Card>
                 )}
               </TabsContent>
+
+              <TabsContent value="my-games" className="space-y-8">
+  {/* 1. ACTIVE GAMES SECTION */}
+  <section>
+  <h3 className="text-sm font-bold text-primary uppercase tracking-widest mb-4 flex items-center gap-2">
+    <Zap className="w-4 h-4" /> Active Matches
+  </h3>
+  {myActiveGames && myActiveGames.length > 0 ? (
+    <div className="grid gap-4">
+      {myActiveGames.map(game => {
+        // LOGIC: If I am the white player, show the black player's name. 
+        // Otherwise, show the white player's name.
+        const isWhite = game.whitePlayerId === user?.id;
+        const opponentName = isWhite ? game.blackPlayerName : game.whitePlayerName;
+        const opponentId = isWhite ? game.blackPlayerId : game.whitePlayerId;
+
+        return (
+          <Card key={game.id} className="p-4 flex justify-between items-center hud-frame border-primary/50">
+            <div>
+              <p className="font-bold text-primary">
+                vs {opponentName || `Player #${opponentId}`}
+              </p>
+              <p className="text-[10px] text-muted-foreground uppercase">
+                Neural Link Active • ID: {game.id.slice(0, 8)}
+              </p>
+            </div>
+            <Button className="btn-neon" onClick={() => setLocation(`/game/${game.id}`)}>
+              Resume Link
+            </Button>
+          </Card>
+        );
+      })}
+    </div>
+  ) : (
+    <p className="text-xs text-muted-foreground italic">No active neural links found.</p>
+  )}
+</section>
+
+  {/* 2. WAITING CHALLENGES SECTION */}
+  <section>
+    <h3 className="text-sm font-bold text-secondary uppercase tracking-widest mb-4 flex items-center gap-2">
+      <Clock className="w-4 h-4" /> Waiting for Opponent
+    </h3>
+    {myChallenges && myChallenges.length > 0 ? (
+      <div className="grid gap-4">
+        {myChallenges.map(challenge => (
+          <Card key={challenge.id} className="p-4 flex justify-between items-center hud-frame border-secondary/50">
+            <div>
+              <p className="font-bold text-secondary">Broadcast Live</p>
+              <p className="text-[10px] text-muted-foreground uppercase">Time: {challenge.timeControl}</p>
+            </div>
+            <Badge variant="outline" className="border-secondary text-secondary animate-pulse">
+              PENDING...
+            </Badge>
+          </Card>
+        ))}
+      </div>
+    ) : (
+      <p className="text-xs text-muted-foreground italic">No open broadcasts.</p>
+    )}
+  </section>
+</TabsContent>
             </Tabs>
           </div>
 

@@ -151,14 +151,20 @@ export function initializeSocket(httpServer: HTTPServer): SocketIOServer {
       }
     });
 
-    socket.on("invite:accept", (invitationId: string, gameId: string) => {
-      const playerId = socket.data.playerId;
-      socket.emit("invite:accepted", {
-        invitationId,
-        gameId,
-        timestamp: Date.now(),
-      });
+    socket.on("invite:accept", (invitationId: string, gameId: string, fromPlayerId: number) => {
+  // 1. Find the socket ID of the person who CREATED the challenge
+  const creatorSocketId = playerSockets.get(fromPlayerId);
+
+  if (creatorSocketId) {
+    // 2. Tell the creator that their invitation was accepted
+    io.to(creatorSocketId).emit("invite:accepted", {
+      invitationId,
+      gameId,
+      timestamp: Date.now(),
     });
+    console.log(`[Socket] Notifying creator ${fromPlayerId} that game ${gameId} is ready`);
+  }
+});
 
     socket.on("invite:reject", (invitationId: string) => {
       const playerId = socket.data.playerId;
